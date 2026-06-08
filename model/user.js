@@ -21,7 +21,16 @@ mongoose.Schema({
     role: {
         type: String,
         default: 'traveler'
+    },
+
+    resetPasswordToken: {
+        type: String
+    },
+
+    resetPasswordExpires: {
+        type: Date
     }
+    
 }, {timestamps: true});
 
 const User = mongoose.model('User', userSchema);

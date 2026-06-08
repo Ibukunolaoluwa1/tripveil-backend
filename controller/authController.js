@@ -1,6 +1,7 @@
 import User from '../model/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import  { randomBytes, createHash } from "crypto"
 
 export const registerUser = async (req, res) => {
 
@@ -70,7 +71,7 @@ export const loginUser = async (req,
                 const token = jwt.sign(
                     { id: user._id},
                     process.env.JWT_SECRET,
-                    { expiresIn: 'id' }
+                    { expiresIn: '1d' }
                 );
 
                 res.status(200).json({
@@ -85,3 +86,118 @@ export const loginUser = async (req,
             });
         }
     };
+
+    export const forgotPassword = async ( req, res) => {
+        try {
+            const { email } = req.body;
+
+            const user = await
+            User.findOneAndDelete({ email });
+
+            if (!user) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+
+            const resetToken = crypto.randomBytes(32).toString("hex");
+
+            user.resetPasswordToken = resetToken;
+
+            user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+
+            await user.save();
+
+            res.status(200).json({
+                message: "Reset token generated",
+                resetToken
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: error.message
+            });
+        }
+    };
+
+    export const resetPassword = async ( req, res ) => {
+        try {
+            const { token } = req.params;
+
+            const { password } = req.body;
+
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.status(400).json({
+                    message: "Invalid or expired token"
+                });
+            }
+
+            const hashedPassword = await
+            bcrypt.hash(password, 10);
+
+            user.password = hashedPassword;
+
+            user.resetPasswordToken = undefined;
+
+            user.resetPasswordExpires = undefined;
+
+            await user.save();
+
+            res.status(200).json({
+                message: "Password reset successful"
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: error.message
+            });
+        }
+    };
+
+    export const changePassword = async (req, res) => {
+        try {
+            const {
+                email,
+                currentPassword,
+                newPassword
+            } = req.body;
+
+            const user = await
+            User.findOne({ email });
+
+            if (!user) {
+                return res.status(404).json({
+                    message: "User not found"
+                });
+            }
+
+            const isMatch = 
+            await bcrypt.compare(
+                currentPassword, user.password
+            );
+
+            if (!isMatch) {
+                return res.status(400).json({
+                    message: "Current password is incorrect"
+                });
+            }
+
+            const hashedPassword = 
+            await bcrypt.hash(newPassword, 10)
+
+            user.password = hashedPassword;
+
+            await user.save();
+
+            res.status(200).json({
+                message: "Password changed successfully"
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: error.message
+            });
+        }
+    }
