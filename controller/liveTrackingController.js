@@ -64,7 +64,7 @@ export const createTracking = async (req, res) => {
 // for current location
 export const updateLocation = async (req, res) => {
   try {
-    //const { trackingId } = req.params;
+    const { trackingId } = req.params;
 
     const { latitude, longitude, accuracy } = req.body;
 
