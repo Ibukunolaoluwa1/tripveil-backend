@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import authRoutes from './router/authRoutes.js';
 import checkInRoutes from './router/checkin.routes.js';
 import emergencyContactRoutes from './router/emergencyContact.routes.js';
+import sosRoutes from './router/sosRoutes.js';
 
 dotenv.config();
 
@@ -16,6 +17,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/checkin', checkInRoutes);
 
 app.use('/api/emergency-contacts', emergencyContactRoutes);
+
+app.use('/api/sos', sosRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => {
