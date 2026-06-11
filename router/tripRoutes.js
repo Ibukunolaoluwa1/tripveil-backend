@@ -1,15 +1,12 @@
 import express from 'express';
 
-import tripRoutes from './router/tripRoutes.js'
+import { createTrip, getUserTrips } from "../controller/tripController.js";
 
-application.use('/api/trips', tripRoutes);
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get('/', (req, res) =>{
-    res.json({
-        message: 'Trips route working'
-    });
-});
+router.post("/", protect, createTrip);
+router.get("/", protect, getUserTrips);
 
 export default router;
