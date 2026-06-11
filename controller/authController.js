@@ -1,4 +1,4 @@
-import User from '../model/User.js';
+import User from '../model/user.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import  { randomBytes, createHash } from "crypto"
@@ -92,7 +92,7 @@ export const loginUser = async (req,
             const { email } = req.body;
 
             const user = await
-            User.findOneAndDelete({ email });
+            User.findOne({ email });
 
             if (!user) {
                 return res.status(404).json({
@@ -100,7 +100,7 @@ export const loginUser = async (req,
                 });
             }
 
-            const resetToken = crypto.randomBytes(32).toString("hex");
+            const resetToken = randomBytes(32).toString("hex");
 
             user.resetPasswordToken = resetToken;
 
