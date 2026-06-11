@@ -7,6 +7,8 @@ import emergencyContactRoutes from './router/emergencyContact.routes.js';
 import sosRoutes from './router/sosRoutes.js';
 import tripRoutes from "./router/tripRoutes.js";
 import userRoutes from "./router/userRoutes.js";
+import liveTrackingRoutes from "./router/liveTrackingRoute.js";
+import ratingRoutes from "./router/ratingRoutes.js";
 
 dotenv.config();
 
@@ -21,9 +23,14 @@ app.use('/api/checkin', checkInRoutes);
 app.use('/api/emergency-contacts', emergencyContactRoutes);
 
 app.use('/api/sos', sosRoutes);
+
 app.use('/api/trips', tripRoutes);
 
 app.use('/api/users', userRoutes);
+
+app.use('/api/tracking', liveTrackingRoutes);
+
+app.use('/api/ratings', ratingRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
 .then(() => {

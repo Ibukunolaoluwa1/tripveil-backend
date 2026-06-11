@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-const mongoose = require("mongoose");
-
 const liveTrackingSchema = new mongoose.Schema(
   {
     userId: {
