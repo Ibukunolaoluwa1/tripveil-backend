@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import authRoutes from './router/authRoutes.js';
 import checkInRoutes from './router/checkin.routes.js';
 import emergencyContactRoutes from './router/emergencyContact.routes.js';
+import sosRoutes from './router/sosRoutes.js';
 import tripRoutes from "./router/tripRoutes.js";
 import userRoutes from "./router/userRoutes.js";
 
@@ -19,6 +20,7 @@ app.use('/api/checkin', checkInRoutes);
 
 app.use('/api/emergency-contacts', emergencyContactRoutes);
 
+app.use('/api/sos', sosRoutes);
 app.use('/api/trips', tripRoutes);
 
 app.use('/api/users', userRoutes);
