@@ -1,6 +1,6 @@
-import LiveTracking from "../models/liveTrackingModel.js";
-import User from "../models/userModel.js";
-import Trip from "../models/tripModel.js";
+import LiveTracking from "../model/liveTrackingModel.js";
+import User from "../model/user.js";
+import Trip from "../model/trip.js";
 
 export const createTracking = async (req, res) => {
   try {

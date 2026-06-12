@@ -7,7 +7,7 @@ import {
   startTracking,
   stopTracking,
   getAllTracking,
-} from "../controllers/liveTrackingController.js";
+} from "../controller/liveTrackingController.js";
 
 const router = express.Router();
 
