@@ -3,7 +3,7 @@ import EmergencyContact from '../model/emergencyContact.model.js';
 // ─── ADD A NEW EMERGENCY CONTACT ────────────────────────────────────────────
 export const addEmergencyContact = async (req, res) => {
     try {
-        const { user, name, relationship, phoneNumber, email, isPrimary } = req.body;
+        const { user = req.user.id, name, relationship, phoneNumber, email, isPrimary } = req.body;
 
         // If this new contact is being set as primary,
         // remove the primary flag from any existing primary contact
@@ -15,7 +15,7 @@ export const addEmergencyContact = async (req, res) => {
         }
 
         const contact = await EmergencyContact.create({
-            user,
+            user: req.user.id, //from middleware
             name,
             relationship,
             phoneNumber,
@@ -38,10 +38,10 @@ export const addEmergencyContact = async (req, res) => {
 // ─── GET ALL CONTACTS FOR A USER ────────────────────────────────────────────
 export const getUserEmergencyContacts = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { userId = req.user.id } = req.params;
 
         const contacts = await EmergencyContact
-            .find({ user: userId })
+            .find({ user: req.user.id })
             .populate('user', 'firstName email')
             .sort({ isPrimary: -1, createdAt: -1 }); // primary contacts appear first
 

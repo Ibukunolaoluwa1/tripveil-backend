@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.post('/:tripId', protect, createRating);
-router.get('/', getAllRatings);
-router.get('/:id', getRatingById);
+router.get('/', protect, getAllRatings);
+router.get('/:id', protect, getRatingById);
 
 export default router;

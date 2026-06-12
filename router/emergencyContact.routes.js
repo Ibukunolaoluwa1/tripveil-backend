@@ -9,24 +9,22 @@ import {
 
 const router = express.Router();
 
-// Health check — matches the pattern the team already uses
-router.get('/', (req, res) => {
-    res.json({ message: 'Emergency contacts route working' });
-});
+import protect from "../middleware/auth.js";
+
 
 // POST   /api/emergency-contacts/add          — Add a new contact
-router.post('/add', addEmergencyContact);
+router.post('/', protect, addEmergencyContact);
 
 // GET    /api/emergency-contacts/user/:userId  — Get all contacts for a user
-router.get('/user/:userId', getUserEmergencyContacts);
+router.get('/', protect, getUserEmergencyContacts);
 
 // GET    /api/emergency-contacts/:contactId    — Get one specific contact
-router.get('/:contactId', getEmergencyContactById);
+router.get('/', protect, getEmergencyContactById);
 
 // PUT    /api/emergency-contacts/:contactId    — Update a contact
-router.put('/:contactId', updateEmergencyContact);
+router.put('/', protect, updateEmergencyContact);
 
 // DELETE /api/emergency-contacts/:contactId    — Delete a contact
-router.delete('/:contactId', deleteEmergencyContact);
+router.delete('/', protect, deleteEmergencyContact);
 
 export default router;

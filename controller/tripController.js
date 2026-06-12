@@ -22,7 +22,6 @@ export const createTrip = async (req, res) => {
         });
     }
 };
-
 //GET ALL USER TRIPS
 export const getUserTrips = async (req, res) => {
      try {

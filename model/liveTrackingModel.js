@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 
 const liveTrackingSchema = new mongoose.Schema(
   {
-    userId: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    tripId: {
+    trip: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Trip",
       required: true,
@@ -30,7 +30,7 @@ const liveTrackingSchema = new mongoose.Schema(
 
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
 
     lastUpdated: {
