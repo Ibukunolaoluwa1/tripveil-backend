@@ -6,7 +6,7 @@ import transporter from '../configuration/email.js';
 
 dotenv.config();
 
-const notifyEmergencyContacts = async (user, sosAlert) => {
+const notifyEmergencyContacts = async (user = req.user.id, sosAlert) => {
     const { location, message } = sosAlert;
 
     const googleMapsLink = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;

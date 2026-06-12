@@ -2,10 +2,10 @@ import Checkin from '../model/checkin.model.js';
 
 export const createCheckin = async (req, res) => {
     try {
-        const { user, location, status } = req.body;
+        const { user = req.user.id, location, status } = req.body;
 
         const newCheckin = await Checkin.create({
-            user,
+            user: req.user.id, // middleware
             location,
             status
         });

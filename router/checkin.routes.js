@@ -1,4 +1,5 @@
 import express from 'express';
+import protect from "../middleware/auth.js"
 import { 
     createCheckin, 
     getAllCheckins 
@@ -7,10 +8,10 @@ import {
 const router = express.Router();
 
 // Route to create a new check-in
-router.post('/create', createCheckin);
+router.post('/', protect, createCheckin);
 
 // Route to get all check-ins
-router.get('/all', getAllCheckins);
+router.get('/', protect, getAllCheckins);
 
 // Health check route matching the team's setup
 router.get('/', (req, res) => {

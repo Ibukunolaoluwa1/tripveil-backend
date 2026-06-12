@@ -1,64 +1,38 @@
 import LiveTracking from "../model/liveTrackingModel.js";
-import User from "../model/user.js";
 import Trip from "../model/trip.js";
 
 export const createTracking = async (req, res) => {
   try {
-    const { userId, tripId, latitude, longitude, accuracy } = req.body;
+    const { tripId, latitude, longitude, accuracy } = req.body;
 
-    // Check if user exists
-    const user = await User.findById(userId);
+    console.log(req.body)
+    console.log(longitude)
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // Check if trip exists
-    const trip = await Trip.findById(tripId);
-
+    const trip = await
+    Trip.findById(tripId);
     if (!trip) {
-      return res.status(404).json({
-        success: false,
-        message: "Trip not found",
-      });
+      return res.status(404).json({ message: "Trip not found"});
     }
 
-    // Prevent duplicate tracking records
-    const existingTracking = await LiveTracking.findOne({
-      userId,
-      tripId,
-    });
-
-    if (existingTracking) {
-      return res.status(400).json({
-        success: false,
-        message: "Tracking already exists for this trip",
-      });
-    }
-
-    //create tracking
-    const tracking = await LiveTracking.create({
-      userId,
-      tripId,
+    const tracking = await
+    LiveTracking.create({
+      user: req.user.id,
+      trip: tripId,
       latitude,
       longitude,
       accuracy,
+      isActive: true,
+      lastUpdate: new Date(),
     });
 
     res.status(201).json({
-      success: true,
       message: "Tracking created successfully",
-      data: tracking,
+      tracking,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message})
   }
+
 };
 
 // for current location
@@ -80,7 +54,7 @@ export const updateLocation = async (req, res) => {
     tracking.latitude = latitude;
     tracking.longitude = longitude;
     tracking.accuracy = accuracy;
-    tracking.lastUpdated = Date.now();
+    tracking.lastUpdated = new Date();
 
     await tracking.save();
 
@@ -103,20 +77,19 @@ export const getTripLocation = async (req, res) => {
     const { tripId } = req.params;
 
     const tracking = await LiveTracking.findOne({
-      tripId,
-    })
-      .populate("userId")
-      .populate("tripId");
+      trip: tripId, })
+      .sort({ lastUpdate: -1});
 
     if (!tracking) {
       return res.status(404).json({
         success: false,
-        message: "Location not found",
+        message: "No tracking data found",
       });
     }
 
     res.status(200).json({
       success: true,
+      message: "Latest trip location fetched",
       data: tracking,
     });
   } catch (error) {
@@ -131,11 +104,9 @@ export const getTripLocation = async (req, res) => {
 
 export const getTrackingById = async (req, res) => {
   try {
-    const { trackingId } = req.params;
-
-    const tracking = await LiveTracking.findById(trackingId)
-      .populate("userId")
-      .populate("tripId");
+       const tracking = await LiveTracking.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("trip");
 
     if (!tracking) {
       return res.status(404).json({
@@ -162,29 +133,23 @@ export const startTracking = async (req, res) => {
   try {
     const { trackingId } = req.params;
 
-    const tracking = await LiveTracking.findByIdAndUpdate(
-      trackingId,
-      {
-        isActive: true,
-        lastUpdated: Date.now(),
-      },
-      {
-        new: true,
-      },
-    );
+    const tracking = await LiveTracking.findById(
+      trackingId,)
 
-    if (!tracking) {
-      return res.status(404).json({
-        success: false,
-        message: "Tracking record not found",
+      if (!tracking) {
+        return
+        res.status(404).json({ message: "Tracking not found"});
+      }
+
+      tracking.isActive = true;
+      tracking.lastUpdate = new Date();
+
+      await tracking.save();
+
+      res.status(200).json({
+        message: "Tracking started",
+        tracking,
       });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Tracking started",
-      data: tracking,
-    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -199,16 +164,8 @@ export const stopTracking = async (req, res) => {
   try {
     const { trackingId } = req.params;
 
-    const tracking = await LiveTracking.findByIdAndUpdate(
-      trackingId,
-      {
-        isActive: false,
-        lastUpdated: Date.now(),
-      },
-      {
-        new: true,
-      },
-    );
+    const tracking = await LiveTracking.findById(
+      trackingId);
 
     if (!tracking) {
       return res.status(404).json({
@@ -216,6 +173,11 @@ export const stopTracking = async (req, res) => {
         message: "Tracking record not found",
       });
     }
+
+    tracking.isActive = false;
+    tracking.lastUpdate = new Date();
+
+    await tracking.save();
 
     res.status(200).json({
       success: true,
@@ -235,8 +197,8 @@ export const stopTracking = async (req, res) => {
 export const getAllTracking = async (req, res) => {
   try {
     const tracking = await LiveTracking.find()
-      .populate("userId")
-      .populate("tripId");
+      .populate("user", "name email")
+      .populate("trip");
 
     res.status(200).json({
       success: true,
