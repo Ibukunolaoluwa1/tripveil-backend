@@ -5,12 +5,15 @@ import {
     loginUser,
     forgotPassword,
     resetPassword,
-    changePassword
+    changePassword,
+    verifyEmail
 } from '../controller/authController.js';
 
 const router = express.Router();
 
 router.post('/register', registerUser);
+
+router.get('/verify-email/:token', verifyEmail);
 
 router.post('/login', loginUser);
 

@@ -2,6 +2,7 @@ import User from '../model/user.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import  { randomBytes, createHash } from "crypto"
+import transporter from "../configuration/email.js"
 
 export const registerUser = async (req, res) => {
 
@@ -21,12 +22,32 @@ export const registerUser = async (req, res) => {
         const hashedPassword = await
         bcrypt.hash(password, 10);
 
+        const verificationToken = randomBytes(32).toString("hex");
+
         const user = await
         User.create({
             firstName,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            verificationToken,
+            isVerified: false
         });
+
+        const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
+
+        await transporter.sendMail({
+            from: `"TripVeil" <$ {process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Verify Your Tripveil Account",
+            html: `
+            <h2>Welcome to Tripveil</h2>
+            <p>Click the link below to verify your email:</p>
+            <a href="${verificationLink}">
+            Verify Email
+            </a>
+            `
+        });
+        
         res.status(201).json({
             message: 'User registered successfully',
             user
@@ -39,6 +60,35 @@ export const registerUser = async (req, res) => {
 
 }
 
+};
+
+export const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        const user = await User.findOne({
+            verificationToken: token
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid verification token"
+            });
+        }
+
+        user.isVerified = true;
+        user.verificationToken = undefined;
+
+        await user.save();
+
+        res.status(200).json({
+            message: "Email verified successfully"
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        });
+    }
 };
 
 export const loginUser = async (req,
@@ -54,6 +104,12 @@ export const loginUser = async (req,
                 return
                 res.status(404).json({
                     message: 'User not found'
+                });
+            }
+
+            if (!user.isVerified) {
+                return res.status(401).json({
+                    message: "Please verify your email first"
                 });
             }
 
@@ -81,7 +137,7 @@ export const loginUser = async (req,
 
         } catch(error) {
 
-            res,status(500).json({
+            res.status(500).json({
                 message: error.message
             });
         }
@@ -108,10 +164,35 @@ export const loginUser = async (req,
 
             await user.save();
 
-            res.status(200).json({
-                message: "Reset token generated",
-                resetToken
+            await transporter.sendMail({
+                from: `"TripVeil" <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: "Password Changed Successsfully",
+                html:`
+                <h2>Password Updated</h2>
+                <p>Your TripVeil password was changed successfully.</p>
+                <p>If this was not you, please contact support immediately.</p>`
             });
+
+            const resetLink = `${process.env.BASE_URL}/api/auth/reset-password/${resetToken}`;
+
+            await transporter.sendMail({
+                from: `"TripVeil" <$
+                {process.env.EMAIL_USER}>`,
+                to: email,
+                subject: "Reset Your Password",
+                html: `
+                <h2>Password Reset Request</h2>
+                <p>Click the link below to reset your password:</p>
+                <a href="${resetLink}">
+                Reset Password
+                </a>`
+            });
+
+            res.status(200).json({
+                message: "Password reset link sent to email"
+            });
+
         } catch (error) {
             res.status(500).json({
                 message: error.message
