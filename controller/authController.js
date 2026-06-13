@@ -5,32 +5,33 @@ import  { randomBytes, createHash } from "crypto"
 import transporter from "../configuration/email.js"
 
 export const registerUser = async (req, res) => {
-
     try {
         const { firstName, email, password } = req.body || {};
 
-        if (!firstName || !email || ! password) {
+        // 1. Validate input
+        if (!firstName || !email || !password) {
             return res.status(400).json({
                 message: "All fields are required"
             });
         }
 
-        const existingUser = await
-        User.findOne({ email });
+        // 2. Check if user exists
+        const existingUser = await User.findOne({ email });
 
-        if(existingUser) {
+        if (existingUser) {
             return res.status(400).json({
-                message: 'User already exists'
+                message: "User already exists"
             });
         }
 
-        const hashedPassword = await
-        bcrypt.hash(password, 10);
+        // 3. Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        // 4. Create verification token
         const verificationToken = randomBytes(32).toString("hex");
 
-        const user = await
-        User.create({
+        // 5. Create user in DB
+        const user = await User.create({
             firstName,
             email,
             password: hashedPassword,
@@ -38,33 +39,35 @@ export const registerUser = async (req, res) => {
             isVerified: false
         });
 
-        const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
+        // 6. Respond IMMEDIATELY (IMPORTANT FIX)
+        res.status(201).json({
+            message: "User registered successfully",
+            user
+        });
 
-        await transporter.sendMail({
+        // 7. Send email AFTER response (NON-BLOCKING)
+        transporter.sendMail({
             from: `"TripVeil" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Verify Your Tripveil Account",
             html: `
-            <h2>Welcome to Tripveil</h2>
-            <p>Click the link below to verify your email:</p>
-            <a href="${verificationLink}">
-            Verify Email
-            </a>
+                <h2>Welcome to Tripveil</h2>
+                <p>Click the link below to verify your email:</p>
+                <a href="${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}">
+                    Verify Email
+                </a>
             `
+        }).catch((err) => {
+            console.log("EMAIL ERROR:", err.message);
         });
-        
-        res.status(201).json({
-            message: 'User registered successfully',
-            user
+
+    } catch (error) {
+        console.log("REGISTER ERROR:", error);
+
+        return res.status(500).json({
+            message: error.message
         });
-    } catch(error) {
-
-    res.status(500).json({
-        message: error.message
-    });
-
-}
-
+    }
 };
 
 export const verifyEmail = async (req, res) => {
