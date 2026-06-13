@@ -12,6 +12,7 @@ import liveTrackingRoutes from "./router/liveTrackingRoute.js";
 import ratingRoutes from "./router/ratingRoutes.js";
 
 dotenv.config();
+console.log("EMAIL_USER", process.env.EMAIL_USER);
 
 const app = express();
 

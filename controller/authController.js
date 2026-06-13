@@ -48,20 +48,26 @@ export const registerUser = async (req, res) => {
         console.log("Verification URL:", verificationUrl);
 
         // 8. Send email (DON'T BLOCK RESPONSE)
-        transporter.sendMail({
-            from: `"TripVeil" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: "Verify Your TripVeil Account",
-            html: `
-                <h2>Welcome to TripVeil</h2>
-                <p>Click the link below to verify your email:</p>
-                <a href="${verificationUrl}">
-                    Verify Email
-                </a>
-            `
-        }).catch((err) => {
-            console.log("EMAIL ERROR:", err.message);
-        });
+        try {
+    const info = await transporter.sendMail({
+        from: `"TripVeil" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify Your TripVeil Account",
+        html: `
+            <h2>Welcome to Tripveil</h2>
+            <p>Click the link below to verify your email:</p>
+            <a href="${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}">
+                Verify Email
+            </a>
+        `
+    });
+
+    console.log("EMAIL SENT SUCCESSFULLY");
+    console.log("Message ID:", info.messageId);
+
+} catch (error) {
+    console.log("EMAIL FAILED:", error);
+}
 
         // 9. IMPORTANT: Return CLEAN response (do NOT expose token in production)
         return res.status(201).json({
