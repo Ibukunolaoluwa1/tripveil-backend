@@ -7,7 +7,13 @@ import transporter from "../configuration/email.js"
 export const registerUser = async (req, res) => {
 
     try {
-        const { firstName, email, password } = req.body;
+        const { firstName, email, password } = req.body || {};
+
+        if (!firstName || !email || ! password) {
+            return res.status(400).json({
+                message: "All fields are required"
+            });
+        }
 
         const existingUser = await
         User.findOne({ email });
@@ -137,7 +143,7 @@ export const loginUser = async (req,
 
         } catch(error) {
 
-            res.status(500).json({
+            res,status(500).json({
                 message: error.message
             });
         }

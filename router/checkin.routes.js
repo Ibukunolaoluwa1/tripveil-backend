@@ -1,23 +1,12 @@
-import express from 'express';
-import protect from "../middleware/auth.js"
-import { 
-    createCheckin, 
-    getAllCheckins 
-} from '../controller/checkin.controller.js';
+import express from "express";
+import { checkIn } from "../controller/checkin.controller.js";
+import protect from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Route to create a new check-in
-router.post('/', protect, createCheckin);
+router.use(protect);
 
-// Route to get all check-ins
-router.get('/', protect, getAllCheckins);
-
-// Health check route matching the team's setup
-router.get('/', (req, res) => {
-    res.json({
-        message: 'Check-in route working'
-    });
-});
+// User checks in
+router.post("/:tripId/checkin", checkIn);
 
 export default router;

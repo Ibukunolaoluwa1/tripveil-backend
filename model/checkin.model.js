@@ -14,6 +14,21 @@ const checkinSchema = new mongoose.Schema(
         status: {
             type: String,
             default: 'Checked In'
+        },
+
+        checkInInterval: {
+             type: Number,
+             default: 6 * 60 * 60 * 10000
+        },
+
+        lastCheckIn: {
+            type: Date,
+            default: null
+        },
+
+        nextCheckInDue: {
+            type: Date,
+            default: null
         }
     }, 
     { timestamps: true } // Automatically adds createdAt and updatedAt dates
