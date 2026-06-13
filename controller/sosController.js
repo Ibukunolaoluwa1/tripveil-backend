@@ -4,9 +4,18 @@ import User from '../model/user.js';
 import Trip from '../model/trip.js';
 import transporter from '../configuration/email.js';
 
-dotenv.config();
+dotenv.config()
 
-const notifyEmergencyContacts = async (user = req.user.id, sosAlert) => {
+const sendMailWithTimeout = (mailOptions, timeout = 8000) => {
+    return Promise.race([
+        transporter.sendMail(mailOptions),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Email timeout")), timeout)
+        )
+    ]);
+};
+
+const notifyEmergencyContacts = async (user, sosAlert) => {
     const { location, message } = sosAlert;
 
     const googleMapsLink = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
@@ -24,33 +33,32 @@ const notifyEmergencyContacts = async (user = req.user.id, sosAlert) => {
     const notified = [];
 
     if (user.emergencyContacts && user.emergencyContacts.length > 0) {
-        for (const contact of user.emergencyContacts) {
 
-            console.log("=======================================");
-            console.log(`${contact.email}`);
-            console.log("===========================");
+        await Promise.all(
+            user.emergencyContacts.map(async (contact) => {
 
-            if (contact.email) {
-                
+                if (!contact.email) return;
+
                 try {
-                    await transporter.sendMail({
+                    await transporter.sendMailWithTimeout({
                         from: `"TripVeil Safety" <${process.env.EMAIL_USER}>`,
                         to: contact.email,
                         subject: `SOS Alert - ${user.firstName} needs help!`,
                         html: emailBody
                     });
+
+                    notified.push({
+                        name: contact.name,
+                        email: contact.email || null,
+                        phone: contact.phone || null,
+                        notifiedAt: new Date()
+                    });
+
                 } catch (err) {
                     console.error(`Email failed for ${contact.email}:`, err.message);
                 }
-            }
-
-            notified.push({
-                name: contact.name,
-                email: contact.email || null,
-                phone: contact.phone || null,
-                notifiedAt: new Date()
-            });
-        }
+            })
+        );
     }
 
     return notified;

@@ -23,6 +23,12 @@ mongoose.Schema({
         default: 'traveler'
     },
 
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: String,
+
     resetPasswordToken: {
         type: String
     },
