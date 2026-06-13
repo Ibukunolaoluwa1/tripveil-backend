@@ -15,7 +15,7 @@ export const registerUser = async (req, res) => {
             });
         }
 
-        // 2. Check if user exists
+        // 2. Check if user already exists
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
@@ -27,7 +27,7 @@ export const registerUser = async (req, res) => {
         // 3. Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Create verification token
+        // 4. Generate verification token
         const verificationToken = randomBytes(32).toString("hex");
 
         // 5. Create user in DB
@@ -39,26 +39,39 @@ export const registerUser = async (req, res) => {
             isVerified: false
         });
 
-        // 6. Respond IMMEDIATELY (IMPORTANT FIX)
-        res.status(201).json({
-            message: "User registered successfully",
-            user
-        });
+        // 6. Log token (IMPORTANT FOR DEBUGGING)
+        console.log("Verification Token:", verificationToken);
 
-        // 7. Send email AFTER response (NON-BLOCKING)
+        // 7. Create verification URL
+        const verificationUrl = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
+
+        console.log("Verification URL:", verificationUrl);
+
+        // 8. Send email (DON'T BLOCK RESPONSE)
         transporter.sendMail({
             from: `"TripVeil" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "Verify Your Tripveil Account",
+            subject: "Verify Your TripVeil Account",
             html: `
-                <h2>Welcome to Tripveil</h2>
+                <h2>Welcome to TripVeil</h2>
                 <p>Click the link below to verify your email:</p>
-                <a href="${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}">
+                <a href="${verificationUrl}">
                     Verify Email
                 </a>
             `
         }).catch((err) => {
             console.log("EMAIL ERROR:", err.message);
+        });
+
+        // 9. IMPORTANT: Return CLEAN response (do NOT expose token in production)
+        return res.status(201).json({
+            message: "User registered successfully. Please check your email to verify your account.",
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                email: user.email,
+                isVerified: user.isVerified
+            }
         });
 
     } catch (error) {
