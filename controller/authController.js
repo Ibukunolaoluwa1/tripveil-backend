@@ -19,8 +19,7 @@ export const registerUser = async (req, res) => {
         User.findOne({ email });
 
         if(existingUser) {
-            return
-            res.status(400).json({
+            return res.status(400).json({
                 message: 'User already exists'
             });
         }
@@ -42,7 +41,7 @@ export const registerUser = async (req, res) => {
         const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
 
         await transporter.sendMail({
-            from: `"TripVeil" <$ {process.env.EMAIL_USER}>`,
+            from: `"TripVeil" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Verify Your Tripveil Account",
             html: `
@@ -143,7 +142,7 @@ export const loginUser = async (req,
 
         } catch(error) {
 
-            res,status(500).json({
+            res.status(500).json({
                 message: error.message
             });
         }
@@ -183,8 +182,7 @@ export const loginUser = async (req,
             const resetLink = `${process.env.BASE_URL}/api/auth/reset-password/${resetToken}`;
 
             await transporter.sendMail({
-                from: `"TripVeil" <$
-                {process.env.EMAIL_USER}>`,
+                from: `"TripVeil" <${process.env.EMAIL_USER}>`,
                 to: email,
                 subject: "Reset Your Password",
                 html: `
