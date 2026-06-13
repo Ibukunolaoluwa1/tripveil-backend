@@ -1,39 +1,39 @@
-import Checkin from '../model/checkin.model.js';
+import Trip from "../model/trip.js";
 
-export const createCheckin = async (req, res) => {
-    try {
-        const { user = req.user.id, location, status } = req.body;
+export const checkIn = async (req, res) => {
+  try {
+    const { tripId } = req.params;
 
-        const newCheckin = await Checkin.create({
-            user: req.user.id, // middleware
-            location,
-            status
-        });
+    const trip = await Trip.findById(tripId);
 
-        return res.status(201).json({
-            message: 'Check-in successful',
-            checkin: newCheckin
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
     }
-};
 
-export const getAllCheckins = async (req, res) => {
-    try {
-        const checkins = await Checkin.find().populate('user', 'firstName email');
-        
-        return res.status(200).json({
-            message: 'Check-ins retrieved successfully',
-            checkins
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+    if (trip.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
     }
+
+    if (trip.status !== "active") {
+      return res.status(400).json({ message: "Trip is not active" });
+    }
+
+    const now = new Date();
+
+    trip.lastCheckIn = now;
+    trip.nextCheckInDue = new Date(
+      now.getTime() + trip.checkInInterval
+    );
+
+    await trip.save();
+
+    res.status(200).json({
+      message: "Check-in successful",
+      lastCheckIn: trip.lastCheckIn,
+      nextCheckInDue: trip.nextCheckInDue
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
