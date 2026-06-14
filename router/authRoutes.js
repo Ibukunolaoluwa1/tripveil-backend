@@ -6,7 +6,8 @@ import {
     forgotPassword,
     resetPassword,
     changePassword,
-    verifyEmail
+    verifyEmail,
+    resendVerificationEmail
 } from '../controller/authController.js';
 
 const router = express.Router();
@@ -14,6 +15,8 @@ const router = express.Router();
 router.post('/register', registerUser);
 
 router.get('/verify-email/:token', verifyEmail);
+
+router.post('/resend-verification', resendVerificationEmail)
 
 router.post('/login', loginUser);
 

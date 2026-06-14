@@ -46,6 +46,8 @@ export const registerUser = async (req, res) => {
         const verificationUrl = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
 
         console.log("Verification URL:", verificationUrl);
+        console.log("REQ BODY:", req.body);
+        console.log("EMAIL VALUE:", email);
 
         // 8. Send email (DON'T BLOCK RESPONSE)
         try {
@@ -117,56 +119,102 @@ export const verifyEmail = async (req, res) => {
     }
 };
 
-export const loginUser = async (req,
-    res) => {
-        
-        try {
-            const { email, password } =
-            req.body;
-            const user = await
-            User.findOne({ email });
+export const resendVerificationEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
 
-            if(!user) {
-                return res.status(404).json({
-                    message: 'User not found'
-                });
-            }
+        const user = await User.findOne({ email });
 
-            if (!user.isVerified) {
-                return res.status(401).json({
-                    message: "Please verify your email first"
-                });
-            }
-
-            const isMatch = await 
-            bcrypt.compare(password,
-                user.password);
-
-                if(!isMatch) {
-                    return
-                    res.status(400).json({
-                        message: 'Invalid credentials'
-                    });
-                }
-
-                const token = jwt.sign(
-                    { id: user._id},
-                    process.env.JWT_SECRET,
-                    { expiresIn: '1d' }
-                );
-
-                res.status(200).json({
-                    message: 'Login successful',
-                    token
-                });
-
-        } catch(error) {
-
-            res.status(500).json({
-                message: error.message
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
             });
         }
-    };
+
+        if (user.isVerified) {
+            return res.status(400).json({
+                message: "User is already verified"
+            });
+        }
+
+        // generate new token
+        const verificationToken = randomBytes(32).toString("hex");
+
+        user.verificationToken = verificationToken;
+        await user.save();
+
+        const verificationUrl = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
+
+        await transporter.sendMail({
+            from: `"TripVeil" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Resend Verification Email",
+            html: `
+                <h2>Verify Your Email</h2>
+                <p>Click the link below to verify your account:</p>
+                <a href="${verificationUrl}">
+                    Verify Email
+                </a>
+            `
+        });
+
+        return res.status(200).json({
+            message: "Verification email resent successfully"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+export const loginUser = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // 1. Check if user exists
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        // 2. Check password
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(400).json({
+                message: "Invalid credentials"
+            });
+        }
+
+        // 3. Generate JWT token
+        const token = jwt.sign(
+            { id: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        // 4. Send response
+        return res.status(200).json({
+            message: "Login successful",
+            token,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                email: user.email
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
 
     export const forgotPassword = async ( req, res) => {
         try {
