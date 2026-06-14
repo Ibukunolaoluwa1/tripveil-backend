@@ -54,16 +54,15 @@ export const registerUser = async (req, res) => {
         to: email,
         subject: "Verify Your TripVeil Account",
         html: `
-            <h2>Welcome to Tripveil</h2>
+            <h2>Welcome to TripVeil</h2>
             <p>Click the link below to verify your email:</p>
-            <a href="${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}">
+            <a href="${verificationUrl}">
                 Verify Email
             </a>
         `
     });
 
-    console.log("EMAIL SENT SUCCESSFULLY");
-    console.log("Message ID:", info.messageId);
+    console.log("VERIFICATION EMAIL SENT:", info.messageId);
 
 } catch (error) {
     console.log("EMAIL FAILED:", error);
