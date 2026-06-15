@@ -20,4 +20,7 @@ transporter.verify((error, success) => {
     }
 });
 
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASS EXISTS:", !! process.env.EMAIL_PASS);
+
 export default transporter;
