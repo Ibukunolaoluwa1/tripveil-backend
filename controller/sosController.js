@@ -1,6 +1,6 @@
 import SOS from "../model/sos.js";
 import User from "../model/user.js";
-import admin from "../configuration/firebaseadmin.js";
+import { messaging } from "../configuration/firebaseadmin.js";
 
 /* ================= TRIGGER SOS ================= */
 export const triggerSOS = async (req, res) => {
@@ -48,24 +48,26 @@ export const triggerSOS = async (req, res) => {
         }
 
         /* ================= FCM NOTIFICATION ================= */
-        try {
-            if (user.fcmToken) {
-                await admin.messaging().send({
-                    token: user.fcmToken,
-                    notification: {
-                        title: "🚨 SOS ALERT",
-                        body: `${user.firstName} triggered an SOS`
-                    },
-                    data: {
-                        sosId: sosAlert._id.toString(),
-                        latitude: latitude.toString(),
-                        longitude: longitude.toString()
-                    }
-                });
+       try {
+    if (user.fcmToken) {
+        await messaging.send({
+            token: user.fcmToken,
+            notification: {
+                title: "🚨 SOS ALERT",
+                body: `${user.firstName} triggered an SOS`
+            },
+            data: {
+                sosId: sosAlert._id.toString(),
+                latitude: String(latitude),
+                longitude: String(longitude)
             }
-        } catch (err) {
-            console.log("FCM ERROR:", err.message);
-        }
+        });
+
+        console.log("FCM notification sent successfully");
+    }
+} catch (err) {
+    console.log("FCM ERROR:", err.message);
+}
 
         // Google Maps link
         const mapLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
