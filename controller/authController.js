@@ -1,21 +1,19 @@
 import User from '../model/user.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import  { randomBytes, createHash } from "crypto"
-import transporter from "../configuration/email.js"
+import { randomBytes } from "crypto";
 
+/* ================= REGISTER ================= */
 export const registerUser = async (req, res) => {
     try {
         const { firstName, email, password } = req.body || {};
 
-        // 1. Validate input
         if (!firstName || !email || !password) {
             return res.status(400).json({
                 message: "All fields are required"
             });
         }
 
-        // 2. Check if user already exists
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
@@ -24,13 +22,10 @@ export const registerUser = async (req, res) => {
             });
         }
 
-        // 3. Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 4. Generate verification token
         const verificationToken = randomBytes(32).toString("hex");
 
-        // 5. Create user in DB
         const user = await User.create({
             firstName,
             email,
@@ -39,64 +34,37 @@ export const registerUser = async (req, res) => {
             isVerified: false
         });
 
-        // 6. Log token (IMPORTANT FOR DEBUGGING)
-        console.log("Verification Token:", verificationToken);
+        const verificationUrl =
+            `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
 
-        // 7. Create verification URL
-        const verificationUrl = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
-
-        console.log("Verification URL:", verificationUrl);
-        console.log("REQ BODY:", req.body);
-        console.log("EMAIL VALUE:", email);
-
-        // 8. Send email (DON'T BLOCK RESPONSE)
-        try {
-    const info = await transporter.sendMail({
-        from: `"TripVeil" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Verify Your TripVeil Account",
-        html: `
-            <h2>Welcome to TripVeil</h2>
-            <p>Click the link below to verify your email:</p>
-            <a href="${verificationUrl}">
-                Verify Email
-            </a>
-        `
-    });
-
-    console.log("VERIFICATION EMAIL SENT:", info.messageId);
-
-} catch (error) {
-    console.log("EMAIL FAILED:", error);
-}
-
-        // 9. IMPORTANT: Return CLEAN response (do NOT expose token in production)
         return res.status(201).json({
-            message: "User registered successfully. Please check your email to verify your account.",
+            message: "User registered successfully",
+
             user: {
                 id: user._id,
                 firstName: user.firstName,
                 email: user.email,
                 isVerified: user.isVerified
-            }
+            },
+
+            verificationToken,
+            verificationUrl
         });
 
     } catch (error) {
-        console.log("REGISTER ERROR:", error);
-
         return res.status(500).json({
             message: error.message
         });
     }
 };
 
+
+/* ================= VERIFY EMAIL ================= */
 export const verifyEmail = async (req, res) => {
     try {
         const { token } = req.params;
 
-        const user = await User.findOne({
-            verificationToken: token
-        });
+        const user = await User.findOne({ verificationToken: token });
 
         if (!user) {
             return res.status(400).json({
@@ -109,16 +77,19 @@ export const verifyEmail = async (req, res) => {
 
         await user.save();
 
-        res.status(200).json({
+        return res.status(200).json({
             message: "Email verified successfully"
         });
+
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             message: error.message
         });
     }
 };
 
+
+/* ================= RESEND VERIFICATION ================= */
 export const resendVerificationEmail = async (req, res) => {
     try {
         const { email } = req.body;
@@ -133,33 +104,23 @@ export const resendVerificationEmail = async (req, res) => {
 
         if (user.isVerified) {
             return res.status(400).json({
-                message: "User is already verified"
+                message: "User already verified"
             });
         }
 
-        // generate new token
         const verificationToken = randomBytes(32).toString("hex");
 
         user.verificationToken = verificationToken;
         await user.save();
 
-        const verificationUrl = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
-
-        await transporter.sendMail({
-            from: `"TripVeil" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: "Resend Verification Email",
-            html: `
-                <h2>Verify Your Email</h2>
-                <p>Click the link below to verify your account:</p>
-                <a href="${verificationUrl}">
-                    Verify Email
-                </a>
-            `
-        });
+        const verificationUrl =
+            `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
 
         return res.status(200).json({
-            message: "Verification email resent successfully"
+            message: "Verification token regenerated",
+
+            verificationToken,
+            verificationUrl
         });
 
     } catch (error) {
@@ -169,11 +130,12 @@ export const resendVerificationEmail = async (req, res) => {
     }
 };
 
+
+/* ================= LOGIN ================= */
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // 1. Check if user exists
         const user = await User.findOne({ email });
 
         if (!user) {
@@ -182,7 +144,6 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // 2. Check password
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
@@ -191,14 +152,12 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // 3. Generate JWT token
         const token = jwt.sign(
             { id: user._id },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
 
-        // 4. Send response
         return res.status(200).json({
             message: "Login successful",
             token,
@@ -216,141 +175,115 @@ export const loginUser = async (req, res) => {
     }
 };
 
-    export const forgotPassword = async ( req, res) => {
-        try {
-            const { email } = req.body;
 
-            const user = await
-            User.findOne({ email });
+/* ================= FORGOT PASSWORD ================= */
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
 
-            if (!user) {
-                return res.status(404).json({
-                    message: "User not found"
-                });
-            }
+        const user = await User.findOne({ email });
 
-            const resetToken = randomBytes(32).toString("hex");
-
-            user.resetPasswordToken = resetToken;
-
-            user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
-
-            await user.save();
-
-            await transporter.sendMail({
-                from: `"TripVeil" <${process.env.EMAIL_USER}>`,
-                to: user.email,
-                subject: "Password Changed Successsfully",
-                html:`
-                <h2>Password Updated</h2>
-                <p>Your TripVeil password was changed successfully.</p>
-                <p>If this was not you, please contact support immediately.</p>`
-            });
-
-            const resetLink = `${process.env.BASE_URL}/api/auth/reset-password/${resetToken}`;
-
-            await transporter.sendMail({
-                from: `"TripVeil" <${process.env.EMAIL_USER}>`,
-                to: email,
-                subject: "Reset Your Password",
-                html: `
-                <h2>Password Reset Request</h2>
-                <p>Click the link below to reset your password:</p>
-                <a href="${resetLink}">
-                Reset Password
-                </a>`
-            });
-
-            res.status(200).json({
-                message: "Password reset link sent to email"
-            });
-
-        } catch (error) {
-            res.status(500).json({
-                message: error.message
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
             });
         }
-    };
 
-    export const resetPassword = async ( req, res ) => {
-        try {
-            const { token } = req.params;
+        const resetToken = randomBytes(32).toString("hex");
 
-            const { password } = req.body;
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
-            const user = await User.findOne({
-                resetPasswordToken: token,
-                resetPasswordExpires: { $gt: Date.now() }
-            });
+        await user.save();
 
-            if (!user) {
-                return res.status(400).json({
-                    message: "Invalid or expired token"
-                });
-            }
+        const resetUrl =
+            `${process.env.BASE_URL}/api/auth/reset-password/${resetToken}`;
 
-            const hashedPassword = await
-            bcrypt.hash(password, 10);
+        return res.status(200).json({
+            message: "Reset token generated",
 
-            user.password = hashedPassword;
+            resetToken,
+            resetUrl
+        });
 
-            user.resetPasswordToken = undefined;
-
-            user.resetPasswordExpires = undefined;
-
-            await user.save();
-
-            res.status(200).json({
-                message: "Password reset successful"
-            });
-        } catch (error) {
-            res.status(500).json({
-                message: error.message
-            });
-        }
-    };
-
-    export const changePassword = async (req, res) => {
-        try {
-            const {
-                email,
-                currentPassword,
-                newPassword
-            } = req.body;
-
-            const user = await
-            User.findOne({ email });
-
-            if (!user) {
-                return res.status(404).json({
-                    message: "User not found"
-                });
-            }
-
-            const isMatch = 
-            await bcrypt.compare(
-                currentPassword, user.password
-            );
-
-            if (!isMatch) {
-                return res.status(400).json({
-                    message: "Current password is incorrect"
-                });
-            }
-
-            const hashedPassword = 
-            await bcrypt.hash(newPassword, 10)
-
-            user.password = hashedPassword;
-
-            await user.save();
-
-            res.status(200).json({
-                message: "Password changed successfully"
-            });
-        } catch (error) {
-            res.status(500).json({
-                message: error.message
-            });
-        }
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
     }
+};
+
+
+/* ================= RESET PASSWORD ================= */
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                message: "Invalid or expired token"
+            });
+        }
+
+        user.password = await bcrypt.hash(password, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "Password reset successful"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+
+/* ================= CHANGE PASSWORD ================= */
+export const changePassword = async (req, res) => {
+    try {
+        const { email, currentPassword, newPassword } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(
+            currentPassword,
+            user.password
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({
+                message: "Current password is incorrect"
+            });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "Password changed successfully"
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};

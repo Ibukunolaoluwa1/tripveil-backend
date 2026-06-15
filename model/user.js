@@ -37,6 +37,11 @@ mongoose.Schema({
         type: Date
     },
 
+    fcmToken: {
+    type: String,
+    default: null
+},
+
     emergencyContacts: [
         {
             name: {
